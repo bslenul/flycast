@@ -2168,41 +2168,68 @@ bool retro_load_game(const struct retro_game_info *game)
 		preferred = RETRO_HW_CONTEXT_DUMMY;
 	bool foundRenderApi = false;
 
-	if (preferred == RETRO_HW_CONTEXT_OPENGL || preferred == RETRO_HW_CONTEXT_OPENGL_CORE
-			|| preferred == RETRO_HW_CONTEXT_OPENGLES2 || preferred == RETRO_HW_CONTEXT_OPENGLES3
-			|| preferred == RETRO_HW_CONTEXT_OPENGLES_VERSION)
+	struct retro_variable var;
+	var.key = CORE_OPTION_NAME "_renderer";
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
 	{
-		foundRenderApi = set_opengl_hw_render(preferred);
-	}
-	else if (preferred == RETRO_HW_CONTEXT_VULKAN)
-	{
-		foundRenderApi = set_vulkan_hw_render();
-	}
-	else if (preferred == RETRO_HW_CONTEXT_DIRECT3D)
-	{
-		foundRenderApi = set_dx11_hw_render();
-	}
-	else
-	{
-		// fallback when not supported (or auto-switching disabled), let's try all supported drivers
-		foundRenderApi = set_dx11_hw_render();
-		if (!foundRenderApi)
+		if (!strcmp("d3d11", var.value))
+			foundRenderApi = set_dx11_hw_render();
+		else if (!strcmp("vulkan", var.value))
 			foundRenderApi = set_vulkan_hw_render();
+		else if (!strcmp("opengl", var.value))
+		{
 #if defined(HAVE_OPENGLES)
-		if (!foundRenderApi)
 			foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGLES3);
-		if (!foundRenderApi)
-			foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGLES2);
+			if (!foundRenderApi)
+				foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGLES2);
 #else
-		if (!foundRenderApi)
 			foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGL_CORE);
-		if (!foundRenderApi)
-			foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGL);
+			if (!foundRenderApi)
+				foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGL);
 #endif
+		}
 	}
 
+	// If false either it failed or we're using "Automatic" renderer,
+	// let's try the renderer set in the frontend settings.
 	if (!foundRenderApi)
-		return false;
+	{
+		if (preferred == RETRO_HW_CONTEXT_OPENGL || preferred == RETRO_HW_CONTEXT_OPENGL_CORE
+				|| preferred == RETRO_HW_CONTEXT_OPENGLES2 || preferred == RETRO_HW_CONTEXT_OPENGLES3
+				|| preferred == RETRO_HW_CONTEXT_OPENGLES_VERSION)
+		{
+			foundRenderApi = set_opengl_hw_render(preferred);
+		}
+		else if (preferred == RETRO_HW_CONTEXT_VULKAN)
+		{
+			foundRenderApi = set_vulkan_hw_render();
+		}
+		else if (preferred == RETRO_HW_CONTEXT_DIRECT3D)
+		{
+			foundRenderApi = set_dx11_hw_render();
+		}
+		else
+		{
+			// fallback when not supported (or auto-switching disabled), let's try all supported drivers
+			foundRenderApi = set_dx11_hw_render();
+			if (!foundRenderApi)
+				foundRenderApi = set_vulkan_hw_render();
+#if defined(HAVE_OPENGLES)
+			if (!foundRenderApi)
+				foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGLES3);
+			if (!foundRenderApi)
+				foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGLES2);
+#else
+			if (!foundRenderApi)
+				foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGL_CORE);
+			if (!foundRenderApi)
+				foundRenderApi = set_opengl_hw_render(RETRO_HW_CONTEXT_OPENGL);
+#endif
+		}
+
+		if (!foundRenderApi)
+			return false;
+	}
 
 	if (settings.platform.isArcade())
 	{

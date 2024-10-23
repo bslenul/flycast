@@ -245,7 +245,26 @@ struct retro_core_option_v2_definition option_defs_us[] = {
       },
       "enabled",
    },
-
+   {
+      CORE_OPTION_NAME "_renderer",
+      "Renderer",
+      NULL,
+      "'Automatic' will try to use the video driver set in the frontend settings, if not possible it will try to fall back to a compatible one.",
+      NULL,
+      "video",
+      {
+         { "auto",   "Automatic" },
+         { "opengl", "OpenGL" },
+#ifdef HAVE_VULKAN
+         { "vulkan", "Vulkan" },
+#endif
+#ifdef HAVE_D3D11
+         { "d3d11",  "DirectX 11" },
+#endif
+         { NULL, NULL },
+      },
+      "auto",
+   },
    {
       CORE_OPTION_NAME "_internal_resolution",
       "Internal Resolution",
